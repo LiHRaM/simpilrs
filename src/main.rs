@@ -1,11 +1,17 @@
 use argh::FromArgs;
 use scanner::Scanner;
+use parser::Parser;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
+use tracing_subscriber as tsub;
+
 mod scanner;
 mod tokens;
+mod syntax;
+mod visitor;
+mod parser;
 
 pub(crate) type Error = Box<dyn std::error::Error>;
 pub(crate) type Result<T> = std::result::Result<T, Error>;
@@ -18,6 +24,7 @@ struct CommandStruct {
 }
 
 fn main() -> Result<()> {
+    tsub::fmt::init();
     let cmd: CommandStruct = argh::from_env();
 
     match cmd.file_name {
@@ -62,18 +69,12 @@ fn run_file(file_name: String) -> Result<()> {
 fn run(code: String) -> Result<()> {
     let scanner = Scanner::new(code);
     let tokens = scanner.scan_tokens()?;
-
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    let parser = Parser::new(tokens);
+    let _ = parser.parse();
 
     Ok(())
 }
 
-fn error(line: usize, message: &str) {
-    report(line, "", message);
-}
-
-fn report(line: usize, location: &str, message: &str) {
-    println!("[line {}] Error {} where: {}", line, location, message);
+fn report(line: usize, column: usize, message: &str) {
+    println!("[line {}, column {}] Error {{ {} }}", line, column, message);
 }

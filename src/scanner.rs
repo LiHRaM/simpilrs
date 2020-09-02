@@ -7,6 +7,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    column: usize,
 }
 
 impl Scanner {
@@ -17,9 +18,11 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
+            column: 0,
         }
     }
 
+    /// Turns the source code into a vector of tokens.
     pub fn scan_tokens(mut self) -> Result<Vec<Token>> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -31,6 +34,7 @@ impl Scanner {
         Ok(self.tokens)
     }
 
+    /// Adds the next token to the internal token storage and advances the cursor.
     fn scan_token(&mut self) -> Result<()> {
         let c = self.advance();
         let token_type = match c {
@@ -51,6 +55,7 @@ impl Scanner {
             b' ' | b'\r' | b'\t' => TokenType::Ignore,
             b'\n' => {
                 self.line += 1;
+                self.column = 1;
                 TokenType::Ignore
             }
             b'0'..=b'9' => {
@@ -77,11 +82,11 @@ impl Scanner {
                         b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'0'..=b'9' => {
                             ident.push(next);
                             self.advance();
-                        },
+                        }
                         _ => break,
                     };
                 }
-                let ident= String::from_utf8(ident)?;
+                let ident = String::from_utf8(ident)?;
                 match ident.as_ref() {
                     "store" => TokenType::Store,
                     "goto" => TokenType::Goto,
@@ -94,17 +99,14 @@ impl Scanner {
                     _ => TokenType::Identifier(ident),
                 }
             }
-            _ => {
-                crate::error(self.line, "Unexpected character.");
-                TokenType::Invalid(c)
-            }
+            _ => TokenType::Invalid(c),
         };
         self.add_token(token_type)?;
         Ok(())
     }
 
-    /// Checks if expected matches the current character.
-    /// Advances if it does.
+    /// True of the current character matches the input.
+    /// If true, it advances.
     fn matches(&mut self, expected: u8) -> bool {
         if self.is_at_end() || self.source[self.current] != expected {
             false
@@ -114,18 +116,20 @@ impl Scanner {
         }
     }
 
-    /// True of we've reached the end of the source.
+    /// True if we've reached the end of the source code.
     fn is_at_end(&self) -> bool {
         self.current as usize >= self.source.len()
     }
 
-    /// Returns the current character and increases the count by one.
+    /// Returns the next character and increments the counter.
     fn advance(&mut self) -> u8 {
         let char = self.source[self.current];
         self.current += 1;
+        self.column += 1;
         char
     }
 
+    /// Returns the value of the next character without advancing.
     fn peek(&self) -> u8 {
         if self.is_at_end() {
             b'\0'
@@ -138,6 +142,11 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) -> Result<()> {
         match token_type {
             TokenType::Ignore => (),
+            TokenType::Invalid(c) => crate::report(
+                self.line,
+                self.column,
+                &format!("Invalid Token '{}'", c as char),
+            ),
             _ => {
                 self.tokens.push(Token {
                     token_type,
