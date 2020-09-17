@@ -74,7 +74,7 @@ impl Parser {
         }
     }
 
-    /// Attempts to parse a statement in Parser's current state.
+    /// Attempts to parse a statement.
     fn statement(&mut self) -> Result<Stmt> {
         let token = self.advance();
         match token {
