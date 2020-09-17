@@ -12,7 +12,7 @@ pub enum TokenType {
     Assign,
 
     // Literals.
-    Value(i32), Identifier(String),
+    Value(u32), Identifier(String),
 
     // Keywords.
     Store, Goto,

@@ -107,7 +107,7 @@ impl Parser {
         Ok(Expr::Unary(self.previous(), Box::new(self.expression()?)))
     }
 
-    fn val(&mut self, val: i32) -> Result<Expr> {
+    fn val(&mut self, val: u32) -> Result<Expr> {
         let left = Expr::Val(val);
         if self.matches(BINARY_OPS.to_vec()) {
             let operator = self.advance();

@@ -1,17 +1,19 @@
 use argh::FromArgs;
-use scanner::Scanner;
 use parser::Parser;
+use scanner::Scanner;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
+use interpreter::Interpreter;
+use io::BufReader;
 use tracing_subscriber as tsub;
 
-mod scanner;
-mod tokens;
-mod syntax;
-mod visitor;
+mod interpreter;
 mod parser;
+mod scanner;
+mod syntax;
+mod tokens;
 
 pub(crate) type Error = Box<dyn std::error::Error>;
 pub(crate) type Result<T> = std::result::Result<T, Error>;
@@ -58,7 +60,7 @@ fn run_prompt() -> Result<()> {
 
 /// Load script from file.
 fn run_file(file_name: String) -> Result<()> {
-    let reader = io::BufReader::new(File::open(file_name)?);
+    let reader = BufReader::new(File::open(file_name)?);
     for line in reader.lines() {
         let line = line?;
         run(line)?;
@@ -70,7 +72,10 @@ fn run(code: String) -> Result<()> {
     let scanner = Scanner::new(code);
     let tokens = scanner.scan_tokens()?;
     let parser = Parser::new(tokens);
-    let _ = parser.parse();
+    let syntax_tree = parser.parse();
+    let interpreter = Interpreter::new(syntax_tree);
+
+    println!("{:#?}", interpreter.visit());
 
     Ok(())
 }

@@ -5,7 +5,7 @@ struct Program {
     statements: Vec<Stmt>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Assignment(Token, BoxExpr),
     Store(BoxExpr, BoxExpr),
@@ -15,12 +15,12 @@ pub enum Stmt {
 }
 
 type BoxExpr = Box<Expr>;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Load(BoxExpr),
     Binary(BoxExpr, Token, BoxExpr),
     Unary(Token, BoxExpr),
     Var(String),
     GetInput(String),
-    Val(i32),
+    Val(u32),
 }

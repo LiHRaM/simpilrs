@@ -71,7 +71,7 @@ impl Scanner {
                     }
                 }
                 let nums: &str = &String::from_utf8(nums)?;
-                let nums: i32 = str::parse(nums)?;
+                let nums: u32 = str::parse(nums)?;
                 TokenType::Value(nums)
             }
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
