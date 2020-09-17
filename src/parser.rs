@@ -57,7 +57,7 @@ impl Parser {
         event!(Level::INFO, "call synchronize");
         self.advance();
         while !self.is_at_end() {
-            if let Some(token) = self.peek_token() {
+            if let Some(token) = self.scanner.peek() {
                 match token.token_type {
                     TokenType::Assign
                     | TokenType::Store
@@ -115,7 +115,7 @@ impl Parser {
 
     fn unary(&mut self) -> Result<Expr> {
         Ok(Expr::Unary(
-            self.next_token().unwrap(),
+            self.scanner.next().unwrap(),
             Box::new(self.expression()?),
         ))
     }
@@ -167,7 +167,7 @@ impl Parser {
     }
 
     fn assign(&mut self) -> Result<Stmt> {
-        let identifier = self.next_token().unwrap();
+        let identifier = self.scanner.next().unwrap();
         let assign = self.advance().unwrap();
         if assign.token_type == TokenType::Assign {
             let expr = self.expression()?;
@@ -213,7 +213,7 @@ impl Parser {
         if self.is_at_end() {
             false
         } else {
-            match self.peek_token() {
+            match self.scanner.peek() {
                 Some(t) => t.token_type == token_type,
                 None => false,
             }
@@ -232,25 +232,15 @@ impl Parser {
 
     fn advance(&mut self) -> Option<Token> {
         event!(Level::INFO, "call advance");
-        self.next_token()
+        self.scanner.next()
     }
 
     fn is_at_end(&mut self) -> bool {
         event!(Level::INFO, "call is_at_end");
-        match self.peek_token() {
+        match self.scanner.peek() {
             Some(_) => false,
             None => true,
         }
-    }
-
-    fn peek_token(&mut self) -> Option<&Token> {
-        event!(Level::INFO, "call peek");
-        self.scanner.peek()
-    }
-
-    fn next_token(&mut self) -> Option<Token> {
-        event!(Level::INFO, "call previous");
-        self.scanner.next()
     }
 }
 
