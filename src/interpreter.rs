@@ -21,9 +21,9 @@ impl Interpreter {
         res
     }
 
-    pub fn new(statements: Vec<Stmt>) -> Self {
+    pub fn new(statements: impl Iterator<Item = Stmt>) -> Self {
         Self {
-            statements,
+            statements: statements.collect(),
             registers: Map::new(),
             vars: Map::new(),
             program_counter: 0,

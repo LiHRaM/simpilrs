@@ -69,12 +69,10 @@ fn run_file(file_name: String) -> Result<()> {
 }
 
 fn run(code: String) -> Result<()> {
-    let scanner = Scanner::new(code);
-    let tokens = scanner.scan_tokens()?;
-    let parser = Parser::new(tokens);
-    let syntax_tree = parser.parse();
+    let scanner = Scanner::new(&code);
+    let parser = Parser::new(scanner);
+    let syntax_tree = parser;
     let interpreter = Interpreter::new(syntax_tree);
-
     println!("{:#?}", interpreter.visit());
 
     Ok(())
