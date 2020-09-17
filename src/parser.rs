@@ -25,6 +25,7 @@ static BINARY_OPS: [TokenType; 4] = [
     TokenType::Slash,
 ];
 
+/// Turn a stream of tokens into a syntax tree.
 #[derive(Debug)]
 pub struct Parser {
     scanner: Peekable<Scanner>,
@@ -46,6 +47,7 @@ impl Iterator for Parser {
 }
 
 impl Parser {
+    /// Create a new parser from a Scanner, i.e. a stream of Tokens.
     pub fn new(scanner: Scanner) -> Self {
         Self {
             scanner: scanner.peekable(),
@@ -93,6 +95,7 @@ impl Parser {
         }
     }
 
+    /// Attempt to parse an expression.
     fn expression(&mut self) -> Result<Expr> {
         let token = self.advance();
         match token {
@@ -113,6 +116,7 @@ impl Parser {
         }
     }
 
+    /// Attempt to parse a unary expression.
     fn unary(&mut self) -> Result<Expr> {
         Ok(Expr::Unary(
             self.scanner.next().unwrap(),
@@ -120,6 +124,7 @@ impl Parser {
         ))
     }
 
+    /// Attempt to parse a value expression.
     fn val(&mut self, val: u32) -> Result<Expr> {
         let left = Expr::Val(val);
         if self.matches(BINARY_OPS.to_vec()) {
@@ -134,6 +139,7 @@ impl Parser {
         }
     }
 
+    /// Attempt to parse an identifier expression.
     fn ident(&mut self, ident: String) -> Result<Expr> {
         let left = Expr::Var(ident);
         if self.matches(BINARY_OPS.to_vec()) {
@@ -148,6 +154,7 @@ impl Parser {
         }
     }
 
+    /// Consume tokens if they match any of the types listed in `token_types`.
     fn matches(&mut self, token_types: Vec<TokenType>) -> bool {
         event!(Level::INFO, "call matches");
         for token_type in token_types {
@@ -159,6 +166,7 @@ impl Parser {
         false
     }
 
+    /// Attempt to parse the load expression.
     fn load(&mut self) -> Result<Expr> {
         self.expect(TokenType::LeftParen)?;
         let inner = self.expression()?;
@@ -166,6 +174,7 @@ impl Parser {
         Ok(Expr::Load(Box::new(inner)))
     }
 
+    /// Attempt to parse the assignment statement.
     fn assign(&mut self) -> Result<Stmt> {
         let identifier = self.scanner.next().unwrap();
         let assign = self.advance().unwrap();
@@ -177,6 +186,7 @@ impl Parser {
         }
     }
 
+    /// Attempt to parse the store statement.
     fn store(&mut self) -> Result<Stmt> {
         self.expect(TokenType::LeftParen)?;
         let left = self.expression()?;
@@ -186,14 +196,17 @@ impl Parser {
         Ok(Stmt::Store(Box::new(left), Box::new(right)))
     }
 
+    /// Attempt to parse the goto statement.
     fn goto(&mut self) -> Result<Stmt> {
         Ok(Stmt::Goto(Box::new(self.expression()?)))
     }
 
+    /// Attempt to parse the assert statement.
     fn assert(&mut self) -> Result<Stmt> {
         Ok(Stmt::Assert(Box::new(self.expression()?)))
     }
 
+    /// Attempt to parse the IfThenElse statement.
     fn r#if(&mut self) -> Result<Stmt> {
         let condition = self.expression()?;
         self.expect(TokenType::Then)?;
@@ -220,6 +233,7 @@ impl Parser {
         }
     }
 
+    /// Expect the next token type to match `token_type`, throw an error if not.
     fn expect(&mut self, token_type: TokenType) -> Result<()> {
         event!(Level::INFO, "call expect");
         if !self.check(token_type.clone()) {
@@ -230,11 +244,13 @@ impl Parser {
         }
     }
 
+    /// Fetch the next token from the stream.
     fn advance(&mut self) -> Option<Token> {
         event!(Level::INFO, "call advance");
         self.scanner.next()
     }
 
+    /// True if the stream has run dry.
     fn is_at_end(&mut self) -> bool {
         event!(Level::INFO, "call is_at_end");
         match self.scanner.peek() {
