@@ -1,5 +1,7 @@
 //! Turn bytes into Tokens.
 
+use std::fmt::{self, Display};
+
 use crate::tokens::{Token, TokenType};
 use crate::Result;
 
@@ -10,6 +12,15 @@ pub struct Scanner {
     current: usize,
     line: usize,
     column: usize,
+}
+
+impl Display for Scanner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
+        let tokens: Vec<_> = self.clone().map(|token| format!("{}", token)).collect();
+        write!(f, "{}", tokens.join(","))?;
+        write!(f, "]")
+    }
 }
 
 impl Iterator for Scanner {
@@ -165,43 +176,17 @@ impl Scanner {
 mod tests {
     use super::*;
 
-    fn tokens(input: &str) -> Vec<Token> {
-        Scanner::new(input).into_iter().collect()
+    fn tokens(input: &str) -> String {
+        format!("{}", Scanner::new(input))
     }
 
     #[test]
     fn scan_value() {
-        assert_eq!(
-            tokens("1"),
-            vec![Token {
-                token_type: TokenType::Value(1),
-                lexeme: "1".into(),
-                line: 1
-            }]
-        )
+        assert_eq!(&tokens("1"), "[Value(1)]")
     }
 
     #[test]
     fn scan_assignment() {
-        assert_eq!(
-            tokens("val := 2"),
-            vec![
-                Token {
-                    token_type: TokenType::Identifier("val".into()),
-                    lexeme: "val".into(),
-                    line: 1,
-                },
-                Token {
-                    token_type: TokenType::Assign,
-                    lexeme: "val :=".into(),
-                    line: 1,
-                },
-                Token {
-                    token_type: TokenType::Value(2),
-                    lexeme: "val := 2".into(),
-                    line: 1,
-                },
-            ]
-        )
+        assert_eq!(tokens("val := 2"), r#"[Identifier("val"),Assign,Value(2)]"#)
     }
 }

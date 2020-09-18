@@ -70,11 +70,11 @@ fn run_file(file_name: String) -> Result<()> {
 
 fn run(code: String) -> Result<()> {
     let scanner = Scanner::new(&code);
+    println!("{}", &scanner);
     let parser = Parser::new(scanner);
-    let syntax_tree = parser;
-    let interpreter = Interpreter::new(syntax_tree);
-    println!("{:#?}", interpreter.visit());
-
+    println!("{}", &parser);
+    let _ = Interpreter::new(parser);
+    
     Ok(())
 }
 

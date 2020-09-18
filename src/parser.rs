@@ -4,18 +4,33 @@ use crate::{
     scanner::Scanner,
     syntax::{Expr, Stmt},
 };
-use std::iter::{Iterator, Peekable};
+use std::{
+    fmt::Display,
+    iter::{Iterator, Peekable},
+};
 use thiserror::Error;
 use tracing::{event, Level};
 
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum ParseError {
     #[error("Parsing statement failed.")]
-    Stmt(String),
+    Stmt(&'static str),
     #[error("Parsing expression failed.")]
-    Expr(String),
+    Expr(&'static str),
     #[error("Expected different token type.")]
     Expected(TokenType),
+}
+
+fn err_expr<T>(msg: &'static str) -> Result<T> {
+    Err(Box::new(ParseError::Expr(msg)))
+}
+
+fn err_stmt<T>(msg: &'static str) -> Result<T> {
+    Err(Box::new(ParseError::Stmt(msg)))
+}
+
+fn err_expected<T>(expected: TokenType) -> Result<T> {
+    Err(Box::new(ParseError::Expected(expected)))
 }
 
 static BINARY_OPS: [TokenType; 4] = [
@@ -26,9 +41,16 @@ static BINARY_OPS: [TokenType; 4] = [
 ];
 
 /// Turn a stream of tokens into a syntax tree.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parser {
     scanner: Peekable<Scanner>,
+}
+
+impl Display for Parser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let stmts: Vec<_> = self.clone().collect();
+        write!(f, "{:?}", stmts)
+    }
 }
 
 impl Iterator for Parser {
@@ -76,47 +98,48 @@ impl Parser {
 
     /// Attempts to parse a statement.
     fn statement(&mut self) -> Result<Stmt> {
-        let token = self.advance();
-        match token {
-            Some(token) => match token.token_type {
-                TokenType::Identifier(_) => self.assign(),
-                TokenType::Store => self.store(),
-                TokenType::Goto => self.goto(),
-                TokenType::Assert => self.assert(),
-                TokenType::If => self.r#if(),
-                token_type => Err(Box::new(ParseError::Stmt(format!(
-                    "Found {:?}, expected statement.",
-                    token_type
-                )))),
-            },
-            None => Err(Box::new(ParseError::Stmt(
-                "Unexpected end of file reached.".into(),
-            ))),
+        let lhs = match self.advance() {
+            Some(token) => token,
+            None => return err_stmt("Expected token, found EOF."),
+        };
+
+        match lhs.token_type {
+            TokenType::Identifier(_) => self.assign(),
+            TokenType::Store => self.store(),
+            TokenType::Goto => self.goto(),
+            TokenType::Assert => self.assert(),
+            TokenType::If => self.r#if(),
+            _ => return err_stmt("Expected statement."),
         }
     }
 
     /// Attempt to parse an expression.
     fn expression(&mut self) -> Result<Expr> {
-        let token = self.advance();
-        match token {
-            Some(token) => match token.token_type {
-                TokenType::Load => self.load(),
-                TokenType::GetInput => Ok(Expr::GetInput("stdin".into())),
-                TokenType::Identifier(i) => self.ident(i),
-                TokenType::Value(v) => self.val(v),
-                TokenType::Minus => self.unary(),
-                t => Err(Box::new(ParseError::Expr(format!(
-                    "Found {:?}, expected expression.",
-                    t
-                )))),
-            },
-            None => Err(Box::new(ParseError::Expr(
-                "Unexpected end of file reached.".into(),
-            ))),
+        let lhs = match self.scanner.peek() {
+            Some(token) => token,
+            None => return err_expr("Expected token, found EOF."),
+        };
+
+        match lhs.token_type {
+            TokenType::Load => self.load(),
+            TokenType::GetInput => Ok(Expr::GetInput("stdin".into())),
+            TokenType::Identifier(_) | TokenType::Value(_) => self.ops(0),
+            TokenType::Plus | TokenType::Minus => self.unary(),
+            _ => return err_expr("Expected Load, GetInput, Identifier or Value."),
         }
     }
 
+    fn binary_binding_power(token_type: &TokenType) -> Result<(u8, u8)> {
+        let res = match token_type {
+            TokenType::Plus | TokenType::Minus => (1, 2),
+            TokenType::Star | TokenType::Slash => (3, 4),
+            _ => return err_expr("Expected operator."),
+        };
+        Ok(res)
+    }
+
     /// Attempt to parse a unary expression.
+    /// TODO: Not really sure what we want here, to be honest.
     fn unary(&mut self) -> Result<Expr> {
         Ok(Expr::Unary(
             self.scanner.next().unwrap(),
@@ -124,50 +147,47 @@ impl Parser {
         ))
     }
 
-    /// Attempt to parse a value expression.
-    fn val(&mut self, val: u32) -> Result<Expr> {
-        let left = Expr::Val(val);
-        if self.matches(BINARY_OPS.to_vec()) {
-            let operator = self.advance().unwrap();
-            Ok(Expr::Binary(
-                Box::new(left),
-                operator,
-                Box::new(self.expression()?),
-            ))
-        } else {
-            Ok(left)
-        }
-    }
+    /// Attempt to parse a series of operations.
+    fn ops(&mut self, min_binding_power: u8) -> Result<Expr> {
+        let mut lhs = {
+            let parse_err: Result<Expr> = err_expr("Expected value or identifier.");
+            match self.scanner.next() {
+                Some(ref token) => match &token.token_type {
+                    TokenType::Value(val) => Expr::Val(*val),
+                    TokenType::Identifier(var) => Expr::Var(var.clone()),
+                    _ => return parse_err,
+                },
+                None => return parse_err,
+            }
+        };
+        loop {
+            let op = match self.scanner.peek() {
+                Some(op) => op.clone(),
+                None => break,
+            };
 
-    /// Attempt to parse an identifier expression.
-    fn ident(&mut self, ident: String) -> Result<Expr> {
-        let left = Expr::Var(ident);
-        if self.matches(BINARY_OPS.to_vec()) {
-            let operator = self.advance().unwrap();
-            Ok(Expr::Binary(
-                Box::new(left),
-                operator,
-                Box::new(self.expression()?),
-            ))
-        } else {
-            Ok(left)
-        }
-    }
+            if BINARY_OPS.contains(&op.token_type) {
+                let (left_binding_power, right_binding_power) =
+                    Self::binary_binding_power(&op.token_type)?;
+                if left_binding_power < min_binding_power {
+                    break;
+                }
 
-    /// Consume tokens if they match any of the types listed in `token_types`.
-    fn matches(&mut self, token_types: Vec<TokenType>) -> bool {
-        event!(Level::INFO, "call matches");
-        for token_type in token_types {
-            if self.check(token_type) {
-                self.advance();
-                return true;
+                self.scanner.next().unwrap();
+                let rhs = self.ops(right_binding_power)?;
+
+                lhs = Expr::Binary(Box::new(lhs), op, Box::new(rhs));
+            } else {
+                break;
             }
         }
-        false
+
+        Ok(lhs)
     }
 
     /// Attempt to parse the load expression.
     fn load(&mut self) -> Result<Expr> {
+        self.scanner.next().unwrap();
         self.expect(TokenType::LeftParen)?;
         let inner = self.expression()?;
         self.expect(TokenType::RightParen)?;
@@ -182,7 +202,7 @@ impl Parser {
             let expr = self.expression()?;
             Ok(Stmt::Assignment(identifier, Box::new(expr)))
         } else {
-            Err(Box::new(ParseError::Stmt("Invalid assignment.".into())))
+            err_stmt("Invalid assignment.".into())
         }
     }
 
@@ -237,7 +257,7 @@ impl Parser {
     fn expect(&mut self, token_type: TokenType) -> Result<()> {
         event!(Level::INFO, "call expect");
         if !self.check(token_type.clone()) {
-            Err(Box::new(ParseError::Expected(token_type)))
+            err_expected(token_type)
         } else {
             self.advance();
             Ok(())
@@ -265,12 +285,12 @@ mod tests {
     use super::*;
     use crate::scanner::Scanner;
 
-    fn statement(src: &str) -> Result<Stmt> {
-        Parser::new(Scanner::new(src)).statement()
+    fn statement(src: &str) -> Result<String> {
+        Ok(format!("{}", Parser::new(Scanner::new(src)).statement()?))
     }
 
-    fn expression(src: &str) -> Result<Expr> {
-        Parser::new(Scanner::new(src)).expression()
+    fn expression(src: &str) -> Result<String> {
+        Ok(format!("{}", Parser::new(Scanner::new(src)).expression()?))
     }
 
     #[test]
@@ -305,10 +325,7 @@ mod tests {
 
     #[test]
     fn parse_assignment() {
-        assert!(match statement("x := 1").unwrap() {
-            Stmt::Assignment(_, _) => true,
-            _ => false,
-        })
+        statement("x := 1").unwrap();
     }
 
     #[test]
@@ -339,5 +356,17 @@ mod tests {
     #[test]
     fn parse_get_input() {
         statement("goto get_input(stdout)").unwrap();
+    }
+
+    #[test]
+    fn parse_precedence_1() -> Result<()> {
+        assert_eq!(expression("1 * 1 + 1")?, "((1, Star, 1), Plus, 1)");
+        Ok(())
+    }
+
+    #[test]
+    fn parse_precedence_2() -> Result<()> {
+        assert_eq!(expression("1 + 1 * 1")?, "(1, Plus, (1, Star, 1))");
+        Ok(())
     }
 }

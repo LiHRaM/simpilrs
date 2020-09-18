@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::syntax::{Expr, Stmt};
 use std::collections::HashMap as Map;
 use tracing::event;

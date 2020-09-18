@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Other lexemes
@@ -5,24 +7,41 @@ pub enum TokenType {
     Ignore,
 
     // Single-character tokens.
-    LeftParen, RightParen, Comma,
-    Plus, Minus, Star, Slash,
+    LeftParen,
+    RightParen,
+    Comma,
+    Plus,
+    Minus,
+    Star,
+    Slash,
 
     // One or two character tokens.
     Assign,
 
     // Literals.
-    Value(u32), Identifier(String),
+    Value(u32),
+    Identifier(String),
 
     // Keywords.
-    Store, Goto,
-    Assert, If, Then,
-    Else, Load, GetInput,
+    Store,
+    Goto,
+    Assert,
+    If,
+    Then,
+    Else,
+    Load,
+    GetInput,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub line: usize
+    pub line: usize,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", &self.token_type)
+    }
 }
