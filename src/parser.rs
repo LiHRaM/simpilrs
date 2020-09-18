@@ -285,88 +285,86 @@ mod tests {
     use super::*;
     use crate::scanner::Scanner;
 
-    fn statement(src: &str) -> Result<String> {
-        Ok(format!("{}", Parser::new(Scanner::new(src)).statement()?))
+    fn statement(src: &str) -> String {
+        format!("{}", Parser::new(Scanner::new(src)).statement().unwrap())
     }
 
-    fn expression(src: &str) -> Result<String> {
-        Ok(format!("{}", Parser::new(Scanner::new(src)).expression()?))
+    fn expression(src: &str) -> String {
+        format!("{}", Parser::new(Scanner::new(src)).expression().unwrap())
     }
 
     #[test]
     fn parse_addition() {
-        expression("1 + 1").unwrap();
+        expression("1 + 1");
     }
 
     #[test]
     fn parse_subtraction() {
-        expression("1 - 1").unwrap();
+        expression("1 - 1");
     }
 
     #[test]
     fn parse_division() {
-        expression("1 / 1").unwrap();
+        expression("1 / 1");
     }
 
     #[test]
     fn parse_multiplication() {
-        expression("1 * 1").unwrap();
+        expression("1 * 1");
     }
 
     #[test]
     fn parse_unary_minus() {
-        expression("-1").unwrap();
+        expression("-1");
     }
 
     #[test]
     fn parse_unary_plus() {
-        expression("+1").unwrap();
+        expression("+1");
     }
 
     #[test]
     fn parse_assignment() {
-        statement("x := 1").unwrap();
+        statement("x := 1");
     }
 
     #[test]
     fn parse_store() {
-        statement("store(1, 1)").unwrap();
+        statement("store(1, 1)");
     }
 
     #[test]
     fn parse_goto() {
-        statement("goto 1").unwrap();
+        statement("goto 1");
     }
 
     #[test]
     fn parse_assert() {
-        statement("assert 1").unwrap();
+        statement("assert 1");
     }
 
     #[test]
     fn parse_if_then_else() {
-        statement("if 1 then 2 else 3").unwrap();
+        statement("if 1 then 2 else 3");
     }
 
     #[test]
     fn parse_load() {
-        statement("goto load(1)").unwrap();
+        statement("goto load(1)");
     }
 
     #[test]
     fn parse_get_input() {
-        statement("goto get_input(stdout)").unwrap();
+        statement("goto get_input(stdout)");
     }
 
     #[test]
-    fn parse_precedence_1() -> Result<()> {
-        assert_eq!(expression("1 * 1 + 1")?, "((1, Star, 1), Plus, 1)");
-        Ok(())
+    fn parse_precedence_1() {
+        assert_eq!(expression("1 * 1 + 1"), "((1, Star, 1), Plus, 1)");
     }
 
     #[test]
-    fn parse_precedence_2() -> Result<()> {
-        assert_eq!(expression("1 + 1 * 1")?, "(1, Plus, (1, Star, 1))");
-        Ok(())
+    fn parse_precedence_2() {
+        assert_eq!(expression("1 + 1 * 1"), "(1, Plus, (1, Star, 1))");
     }
 }
