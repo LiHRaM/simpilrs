@@ -82,10 +82,14 @@ impl Scanner {
                         TokenType::Invalid(c)
                     }
                 }
-                b' ' | b'\r' | b'\t' => TokenType::Ignore,
+                b' ' | b'\r' | b'\t' => {
+                    self.start += 1;
+                    TokenType::Ignore
+                },
                 b'\n' => {
                     self.line += 1;
                     self.column = 1;
+                    self.start = 0;
                     TokenType::Ignore
                 }
                 b'0'..=b'9' => {
@@ -140,11 +144,11 @@ impl Scanner {
                     &format!("Invalid Token '{}'", c as char),
                 ),
                 _ => {
+                    let lexeme = self.source[self.start..self.current].to_owned();
+                    self.start = self.current;
                     return Ok(Token {
                         token_type,
-                        lexeme: String::from_utf8(
-                            self.source[self.start..self.current].to_owned(),
-                        )?,
+                        lexeme: String::from_utf8(lexeme)?,
                         line: self.line,
                     });
                 }
@@ -158,7 +162,7 @@ impl Scanner {
         if self.is_at_end() || self.source[self.current] != expected {
             false
         } else {
-            self.current += 1;
+            self.advance();
             true
         }
     }
@@ -172,7 +176,6 @@ impl Scanner {
     fn advance(&mut self) -> u8 {
         let char = self.source[self.current];
         self.current += 1;
-        self.column += 1;
         char
     }
 
@@ -190,17 +193,30 @@ impl Scanner {
 mod tests {
     use super::*;
 
-    fn tokens(input: &str) -> String {
+    fn display_tokens(input: &str) -> String {
         format!("{}", Scanner::new(input))
+    }
+
+    fn debug_tokens(input: &str) -> String {
+        format!("{:?}", Scanner::new(input).collect::<Vec<_>>())
     }
 
     #[test]
     fn scan_value() {
-        assert_eq!(&tokens("1"), "[Value(1)]")
+        assert_eq!(&display_tokens("1"), "[Value(1)]")
     }
 
     #[test]
     fn scan_assignment() {
-        assert_eq!(tokens("val := 2"), r#"[Identifier("val"),Assign,Value(2)]"#)
+        assert_eq!(
+            display_tokens("val := 2"),
+            r#"[Identifier("val"),Assign,Value(2)]"#
+        )
+    }
+
+    #[test]
+    fn proper_lexemes_assignment() {
+        let tokens = debug_tokens("val := 1");
+        println!("{}", tokens);
     }
 }

@@ -1,4 +1,4 @@
-use crate::tokens::TokenType;
+use crate::tokens::{TokenType, Token};
 use crate::Result;
 use crate::{
     scanner::Scanner,
@@ -119,7 +119,7 @@ impl Parser {
         };
 
         match lhs.token_type {
-            TokenType::Identifier(_) => self.assign(),
+            TokenType::Identifier(_) => self.assign(lhs),
             TokenType::Store => self.store(),
             TokenType::Goto => self.goto(),
             TokenType::Assert => self.assert(),
@@ -213,8 +213,7 @@ impl Parser {
     }
 
     /// Attempt to parse the assignment statement.
-    fn assign(&mut self) -> Result<Stmt> {
-        let identifier = self.scanner.next().unwrap();
+    fn assign(&mut self, identifier: Token) -> Result<Stmt> {
         let assign = self.scanner.next().unwrap();
         if assign.token_type == TokenType::Assign {
             let expr = self.expression()?;
@@ -248,8 +247,10 @@ impl Parser {
     fn r#if(&mut self) -> Result<Stmt> {
         let condition = self.expression()?;
         self.expect(TokenType::Then)?;
+        self.expect(TokenType::Goto)?;
         let first = self.expression()?;
         self.expect(TokenType::Else)?;
+        self.expect(TokenType::Goto)?;
         let second = self.expression()?;
         Ok(Stmt::IfThenElse(
             Box::new(condition),
@@ -357,7 +358,7 @@ mod tests {
 
     #[test]
     fn parse_if_then_else() {
-        statement("if 1 then 2 else 3");
+        statement("if 1 then goto 2 else goto 3");
     }
 
     #[test]
