@@ -148,6 +148,9 @@ impl Parser {
     }
 
     /// Attempt to parse a series of operations.
+    /// Use Pratt parsing as described in 
+    /// [SPPP](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html) 
+    /// to get the correct precedence and associativity.
     fn ops(&mut self, min_binding_power: u8) -> Result<Expr> {
         let mut lhs = {
             let parse_err: Result<Expr> = err_expr("Expected value or identifier.");
