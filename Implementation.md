@@ -47,8 +47,8 @@ Since the language is defined ad-hoc in several ways, I've decided to gather the
 
 **Binary** | **Unary** | **Definition**
 ---------- | --------- | ----------------------------
-+          |           | Add `left` to `right`
--          |           | Subtract `right` from `left`
-/          |           | Divide `left` by `right`
-*          |           | Multiply `left` by `right`
-=          |           | Compare `left` and `right`.
+`+`        |           | Add `left` to `right`
+`-`        |           | Subtract `right` from `left`
+`/`        |           | Divide `left` by `right`
+`*`        |           | Multiply `left` by `right`
+`=`        |           | Compare `left` and `right`.
