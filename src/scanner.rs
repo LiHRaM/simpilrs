@@ -1,10 +1,22 @@
-//! Turn bytes into Tokens.
-
 use std::fmt::{self, Display};
 
 use crate::tokens::{Token, TokenType};
 use crate::Result;
 
+/// The Scanner turns a stream of bytes into [`Token`](tokens/struct.Token.html)s.
+///
+/// Example use:
+///
+/// ```
+/// let input = "goto 1";
+/// let tokens: Vec<_> =
+///     Scanner::new(input)
+///       .collect();
+/// ```
+/// `goto 1` is the simpIL equivalent of an infinite loop.
+/// Here, we eagerly compute the token stream by calling `collect`.
+///
+/// Otherwise, you can treat Scanner as `impl Iterator<Item = Token>`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scanner {
     source: Vec<u8>,
@@ -39,6 +51,8 @@ impl Iterator for Scanner {
 }
 
 impl Scanner {
+    /// Construct an instance of the Scanner.
+    /// The string reference is turned into bytes internally.
     pub fn new(source: &str) -> Self {
         Self {
             source: source.as_bytes().to_owned(),

@@ -11,28 +11,42 @@ use std::{
 use thiserror::Error;
 use tracing::{event, Level};
 
+/// An enum used for error reporting.
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum ParseError {
+    /// A statement is somehow invalid.
     #[error("Parsing statement failed.")]
     Stmt(&'static str),
+
+    /// An expression is somehow invalid.
     #[error("Parsing expression failed.")]
     Expr(&'static str),
+
+    /// A different token was expected.
+    ///
+    /// Note: typically several tokens are expected,
+    /// we just use the Expr and Stmt error types for those.
+    /// There is probably a better solution.
     #[error("Expected different token type.")]
     Expected(TokenType),
 }
 
+#[doc(hidden)]
 fn err_expr<T>(msg: &'static str) -> Result<T> {
     Err(Box::new(ParseError::Expr(msg)))
 }
 
+#[doc(hidden)]
 fn err_stmt<T>(msg: &'static str) -> Result<T> {
     Err(Box::new(ParseError::Stmt(msg)))
 }
 
+#[doc(hidden)]
 fn err_expected<T>(expected: TokenType) -> Result<T> {
     Err(Box::new(ParseError::Expected(expected)))
 }
 
+#[doc(hidden)]
 static BINARY_OPS: [TokenType; 4] = [
     TokenType::Plus,
     TokenType::Minus,
@@ -40,7 +54,8 @@ static BINARY_OPS: [TokenType; 4] = [
     TokenType::Slash,
 ];
 
-/// Turn a stream of tokens into a syntax tree.
+/// Parser consumes a Scanner, turning the Tokens into a Syntax Tree.
+/// The Parser can in turn be consumed by an Interpreter.
 #[derive(Debug, Clone)]
 pub struct Parser {
     scanner: Peekable<Scanner>,

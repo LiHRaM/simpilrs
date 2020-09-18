@@ -1,3 +1,5 @@
+//! A Rust implementation of a simpIL interpreter.
+
 use argh::FromArgs;
 use parser::Parser;
 use scanner::Scanner;
@@ -9,13 +11,21 @@ use interpreter::Interpreter;
 use io::BufReader;
 use tracing_subscriber as tsub;
 
+/// Traverse and execute a syntax tree.
 mod interpreter;
+/// Turn a token iterator into a statement iterator.
 mod parser;
+/// Turn a string into a token iterator.
 mod scanner;
+/// Definitions of the simpIL syntax.
 mod syntax;
+/// Definitions of the simpIL tokens.
 mod tokens;
 
+#[doc(hidden)]
 pub(crate) type Error = Box<dyn std::error::Error>;
+
+#[doc(hidden)]
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
 /// Run simpilrs on a simpIL script.
@@ -25,6 +35,7 @@ struct CommandStruct {
     file_name: Option<String>,
 }
 
+/// Run a program from a file, or as an interactive prompt.
 fn main() -> Result<()> {
     tsub::fmt::init();
     let cmd: CommandStruct = argh::from_env();
@@ -68,16 +79,18 @@ fn run_file(file_name: String) -> Result<()> {
     Ok(())
 }
 
+/// Run the whole pipeline, including the interpreter.
 fn run(code: String) -> Result<()> {
     let scanner = Scanner::new(&code);
     println!("{}", &scanner);
     let parser = Parser::new(scanner);
     println!("{}", &parser);
     let _ = Interpreter::new(parser);
-    
+
     Ok(())
 }
 
+#[doc(hidden)]
 fn report(line: usize, column: usize, message: &str) {
     println!("[line {}, column {}] Error {{ {} }}", line, column, message);
 }
