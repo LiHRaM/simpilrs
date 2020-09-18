@@ -1,4 +1,4 @@
-use crate::tokens::{Token, TokenType};
+use crate::tokens::TokenType;
 use crate::Result;
 use crate::{
     scanner::Scanner,
@@ -79,7 +79,7 @@ impl Parser {
     /// Once parsing has failed, try to advance to the next statement.
     fn synchronize(&mut self) {
         event!(Level::INFO, "call synchronize");
-        self.advance();
+        self.scanner.next();
         while !self.is_at_end() {
             if let Some(token) = self.scanner.peek() {
                 match token.token_type {
@@ -89,7 +89,7 @@ impl Parser {
                     | TokenType::Assert
                     | TokenType::If => return,
                     _ => {
-                        self.advance();
+                        self.scanner.next();
                     }
                 }
             }
@@ -98,7 +98,7 @@ impl Parser {
 
     /// Attempts to parse a statement.
     fn statement(&mut self) -> Result<Stmt> {
-        let lhs = match self.advance() {
+        let lhs = match self.scanner.next() {
             Some(token) => token,
             None => return err_stmt("Expected token, found EOF."),
         };
@@ -148,8 +148,8 @@ impl Parser {
     }
 
     /// Attempt to parse a series of operations.
-    /// Use Pratt parsing as described in 
-    /// [SPPP](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html) 
+    /// Use Pratt parsing as described in
+    /// [SPPP](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
     /// to get the correct precedence and associativity.
     fn ops(&mut self, min_binding_power: u8) -> Result<Expr> {
         let mut lhs = {
@@ -200,7 +200,7 @@ impl Parser {
     /// Attempt to parse the assignment statement.
     fn assign(&mut self) -> Result<Stmt> {
         let identifier = self.scanner.next().unwrap();
-        let assign = self.advance().unwrap();
+        let assign = self.scanner.next().unwrap();
         if assign.token_type == TokenType::Assign {
             let expr = self.expression()?;
             Ok(Stmt::Assignment(identifier, Box::new(expr)))
@@ -262,15 +262,9 @@ impl Parser {
         if !self.check(token_type.clone()) {
             err_expected(token_type)
         } else {
-            self.advance();
+            self.scanner.next();
             Ok(())
         }
-    }
-
-    /// Fetch the next token from the stream.
-    fn advance(&mut self) -> Option<Token> {
-        event!(Level::INFO, "call advance");
-        self.scanner.next()
     }
 
     /// True if the stream has run dry.
