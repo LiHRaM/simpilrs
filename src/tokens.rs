@@ -52,8 +52,11 @@ pub enum TokenType {
 /// A wrapper for TokenType, including also the lexeme and line placement.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
+    /// The specific type of token.
     pub token_type: TokenType,
+    /// The lexeme or text it was scanned from.
     pub lexeme: String,
+    /// The line at which it was found.
     pub line: usize,
 }
 
