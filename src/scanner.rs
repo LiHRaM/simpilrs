@@ -85,7 +85,7 @@ impl Scanner {
                 b' ' | b'\r' | b'\t' => {
                     self.start += 1;
                     TokenType::Ignore
-                },
+                }
                 b'\n' => {
                     self.line += 1;
                     self.column = 1;
@@ -193,30 +193,28 @@ impl Scanner {
 mod tests {
     use super::*;
 
-    fn display_tokens(input: &str) -> String {
+    fn lex(input: &str) -> String {
         format!("{}", Scanner::new(input))
     }
 
-    fn debug_tokens(input: &str) -> String {
+    fn flex(input: &str) -> String {
         format!("{:?}", Scanner::new(input).collect::<Vec<_>>())
     }
 
     #[test]
     fn scan_value() {
-        assert_eq!(&display_tokens("1"), "[Value(1)]")
+        assert_eq!(&lex("1"), "[Value(1)]")
     }
 
     #[test]
     fn scan_assignment() {
-        assert_eq!(
-            display_tokens("val := 2"),
-            r#"[Identifier("val"),Assign,Value(2)]"#
-        )
+        assert_eq!(lex("val := 2"), r#"[Identifier("val"),Assign,Value(2)]"#)
     }
 
     #[test]
     fn proper_lexemes_assignment() {
-        let tokens = debug_tokens("val := 1");
-        println!("{}", tokens);
+        let actual = flex("val := 1");
+        let expected = r#"[Token { token_type: Identifier("val"), lexeme: "val", line: 1 }, Token { token_type: Assign, lexeme: ":=", line: 1 }, Token { token_type: Value(1), lexeme: "1", line: 1 }]"#;
+        assert_eq!(actual, expected);
     }
 }

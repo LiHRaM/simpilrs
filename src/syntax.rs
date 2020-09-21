@@ -34,7 +34,7 @@ impl Display for Stmt {
             Stmt::Goto(statement) => format!("Goto {}", statement),
             Stmt::Assert(expr) => format!("Assert {}", expr),
             Stmt::IfThenElse(cond, iftrue, iffalse) => {
-                format!("if {} then {} else {}", cond, iftrue, iffalse)
+                format!("If {} Then Goto {} Else Goto {}", cond, iftrue, iffalse)
             }
         };
 

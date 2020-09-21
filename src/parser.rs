@@ -1,4 +1,4 @@
-use crate::tokens::{TokenType, Token};
+use crate::tokens::{Token, TokenType};
 use crate::Result;
 use crate::{
     scanner::Scanner,
@@ -63,8 +63,10 @@ pub struct Parser {
 
 impl Display for Parser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let stmts: Vec<_> = self.clone().collect();
-        write!(f, "{:?}", stmts)
+        write!(f, "[")?;
+        let stmts: Vec<_> = self.clone().map(|stmt| format!("{}", stmt)).collect();
+        write!(f, "{}", stmts.join(","))?;
+        write!(f, "]")
     }
 }
 
